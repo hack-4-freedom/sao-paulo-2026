@@ -436,6 +436,12 @@ app de artesanato. A camada financeira só aparece com o gesto secreto.
 
 Projeto do hackathon Hack4Freedom São Paulo 2026 (equipe só de mulheres).
 
+- **Jhulia Carvalho** — Arquitetura; business model; rail de pagamento
+  Pix; fluxo financeiro; integração fiat/bitcoin.
+- **Dilaine Oliveira** — Frontend; identificações Nostr; Recuperação;
+  UX design; trilhas de aprendizado; implementação dos mecanismos de
+  segurança e Ponto Arakne.
+
 ---
 
 ## Repositório e Links
@@ -560,6 +566,75 @@ para criar uma convidada.
 | Multi-moeda | Campo `pais` faz gate | Rails por país (M-Pesa, UPI, etc.) |
 | Camada de investimento | Wireframes | Staking do pool (pendente validação jurídica) |
 | Governança do fundo | Não implementada | Multisig com stewards reais |
+
+### Roadmap financeiro — gestão de risco e fundo de investimento
+
+#### Gestão de risco (risk management)
+
+O motor de crédito atual opera com 4 tiers baseados em aval social e
+quitamento progressivo (ver seção Motor de Crédito). O roadmap prevê a
+evolução para um sistema de risk management mais sofisticado:
+
+- **Atraso automatizado:** `ao_atrasar()` já existe no código mas não é
+  chamada por falta de scheduler. O objetivo é um job periódico que
+  verifica empréstimos vencidos há mais de 14 dias e congela o tier da
+  mutuária e da avalista automaticamente.
+- **Voucher com trava em sats:** a avalista em tier ≥ 2 paga 500 sats
+  fixos para liberar o link de indicação. A trava só é devolvida quando
+  a avalizada quita o primeiro empréstimo — não quando o pega. Isso
+  alinha incentivos: a avalista só indica quem ela confia de verdade.
+- **Proteção cambial do empréstimo:** hoje `valor_sats` e
+  `valor_brl` são independentes. O objetivo é denominar a dívida em
+  moeda local (ex: BRL) com cotação travada no momento do empréstimo.
+  O fundo absorve a diferença cambial — se o BTC subiu entre o
+  empréstimo e o repagamento, a mutuária paga o mesmo valor em BRL; se
+  caiu, o fundo absorve o prejuízo. Isso requer um buffer de 30–50% do
+  fundo total como reserva cambial.
+- **Juros flutuantes com base na Selic:** spread pra baixo (a mutuária
+  paga menos que a taxa de mercado). O juro não é fixo — flutua com a
+  taxa básica de juros do país, para que o fundo se mantenha sustentável
+  em diferentes ciclos econômicos. O spread exato precisa ser calibrado
+  junto com o buffer cambial.
+
+#### Fundo de investimento (capitalização do pool)
+
+O pool do Arakne é custodial e funciona como uma cooperativa de crédito:
+mutuárias pedem empréstimos, repagam via Pix, e o BRL volta como sats
+para o pool. Mas o pool precisa de capital inicial e de reposição —
+especialmente quando há inadimplência ou variação cambial desfavorável.
+
+O roadmap prevê uma **camada de investimento** separada do app principal:
+
+- **Cotistas investem capital no pool** via posições de staking (a
+  linguagem é DeFi — "posição", não "cota" — mas a substância
+  regulatória é próxima de um FIDC brasileiro, o que é uma pendência
+  jurídica real, não resolvida trocando o nome).
+- **O principal investido nunca é sacado** — fica travado no pool como
+  capital de base. O cotista só recebe o **lucro**, se houver,
+  distribuído por ciclo mensal (estilo Curve/GMX).
+- **O cotista não tem acesso ao app de crochê** — é um público
+  diferente (investidoras, não mutuárias), com interface própria, sem
+  disfarce têxtil, e PJ separada da entidade operacional.
+- **A arquitetura prevê uma tabela `posicao_staking`** no mesmo backend,
+  não um token — o sistema roda em Bitcoin/Lightning, não numa chain
+  com contrato inteligente.
+
+#### Segundo app (capitalização aberta)
+
+Para escalar a capitalização do pool sem expor as mutuárias, o roadmap
+prevê um **segundo app**, mais aberto, que **puxa do mesmo fundo**:
+
+- O app principal (Arakne) continua disfarçado e focado nas mutuárias —
+  crochê, microcrédito, recuperação social.
+- O segundo app é aberto (sem disfarce), voltado para investidoras que
+  querem aportar capital ao fundo. Ele se conecta ao **mesmo backend** e
+  ao **mesmo pool Lightning**, mas tem uma interface própria de
+  investimento/staking.
+- Esse modelo permite que pessoas de fora da rede de mutuárias contribuam
+  com capital (inclusive de fora do Brasil, via Lightning), sem precisar
+  passar pelo onboarding de crochê nem pelo aval social.
+- A separação de apps protege o disfarce: o agressor que encontrar o
+  app de investimento não consegue rastrear a mutuária, e vice-versa.
 
 ### Inconsistências conhecidas
 

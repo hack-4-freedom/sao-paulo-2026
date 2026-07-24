@@ -436,6 +436,11 @@ a crafts app. The financial layer only appears with the secret gesture.
 
 Project for the Hack4Freedom São Paulo 2026 hackathon (women-only team).
 
+- **Jhulia Carvalho** — Architecture; business model; Pix payment rail;
+  financial flow; fiat/bitcoin integration.
+- **Dilaine Oliveira** — Frontend; Nostr identities; Recovery; UX design;
+  learning trails; implementation of security mechanisms and Arakne Stitch.
+
 ---
 
 ## Repository and Links
@@ -560,6 +565,75 @@ to create an invitee.
 | Multi-currency | `pais` field gates | Per-country rails (M-Pesa, UPI, etc.) |
 | Investment layer | Wireframes | Pool staking (pending legal validation) |
 | Fund governance | Not implemented | Multisig with real stewards |
+
+### Financial roadmap — risk management and investment fund
+
+#### Risk management
+
+The current credit engine operates with 4 tiers based on social voucher
+and progressive repayment (see Credit Engine section). The roadmap envisions
+evolution toward a more sophisticated risk management system:
+
+- **Automated delay:** `ao_atrasar()` already exists in the code but isn't
+  called due to lack of a scheduler. The goal is a periodic job that
+  checks loans overdue by more than 14 days and automatically freezes the
+  tier of the borrower and her guarantor.
+- **Voucher with sats lock:** a guarantor at tier ≥ 2 pays a fixed 500
+  sats to unlock the referral link. The lock is only returned when the
+  referred borrower repays her first loan — not when she takes it. This
+  aligns incentives: the guarantor only refers people she truly trusts.
+- **Loan exchange rate protection:** currently `valor_sats` and
+  `valor_brl` are independent. The goal is to denominate the debt in local
+  currency (e.g.: BRL) with the rate locked at loan time. The fund absorbs
+  the exchange rate difference — if BTC rose between loan and repayment,
+  the borrower pays the same BRL amount; if it fell, the fund absorbs the
+  loss. This requires a 30–50% buffer of the total fund as exchange rate
+  reserve.
+- **Floating interest rates based on Selic:** downward spread (the
+  borrower pays less than market rate). The rate isn't fixed — it floats
+  with the country's base interest rate, so the fund remains sustainable
+  across different economic cycles. The exact spread needs to be
+  calibrated alongside the exchange rate buffer.
+
+#### Investment fund (pool capitalization)
+
+The Arakne pool is custodial and operates as a credit cooperative:
+borrowers request loans, repay via Pix, and the BRL returns as sats to
+the pool. But the pool needs initial capital and replenishment —
+especially when there's default or unfavorable exchange rate variation.
+
+The roadmap envisions an **investment layer** separate from the main app:
+
+- **Investors provide capital to the pool** via staking positions (the
+  language is DeFi — "position," not "share" — but the regulatory
+  substance is close to a Brazilian FIDC, which is a real legal pending
+  issue, not resolved by renaming).
+- **The invested principal is never withdrawn** — it's locked in the
+  pool as base capital. The investor only receives the **profit**, if
+  any, distributed per monthly cycle (Curve/GMX style).
+- **The investor has no access to the crochet app** — it's a different
+  audience (investors, not borrowers), with its own interface, no
+  textile disguise, and a separate legal entity from the operating one.
+- **The architecture envisions a `posicao_staking` table** in the same
+  backend, not a token — the system runs on Bitcoin/Lightning, not on a
+  chain with smart contracts.
+
+#### Second app (open capitalization)
+
+To scale pool capitalization without exposing borrowers, the roadmap
+envisions a **second app**, more open, that **draws from the same fund**:
+
+- The main app (Arakne) remains disguised and focused on borrowers —
+  crochet, microcredit, social recovery.
+- The second app is open (no disguise), aimed at investors who want to
+  provide capital to the fund. It connects to the **same backend** and
+  the **same Lightning pool**, but has its own investment/staking
+  interface.
+- This model allows people outside the borrower network to contribute
+  capital (including from outside Brazil, via Lightning), without going
+  through the crochet onboarding or social voucher process.
+- The app separation protects the disguise: an abuser who finds the
+  investment app can't track the borrower, and vice versa.
 
 ### Known inconsistencies
 
