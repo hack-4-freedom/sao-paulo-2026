@@ -54,7 +54,7 @@ Video showcase:
 https://github.com/user-attachments/assets/41720072-fc42-4ef4-8062-f16aee7c3221
 
 ## Status
-No momento o projeto é um MVP funcional, todas as features funcionam e as transações parecem acontecer sem problemas. 
+No momento o projeto é um MVP funcional, todas as features funcionam e as transações parecem acontecer sem problemas. Foi criada a categoria de Fonte Demo, usada para demonstrações.
 ## Próximos Passos
 #### 1. Relays da comunidade
 Estruturar um protocolo com base no relay Iris que outros relays auto-custodiados pelos usuários pudessem usar. Isso definiria uma mesma politica de escrita/writing, como permitir apenas chaves públicas Iris ativas a postarem.
