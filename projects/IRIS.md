@@ -28,6 +28,9 @@ Leva alguns meses de uso para alcançar reputação o bastante para liberar o ac
 #### __Sistema de convites (Invite-only)__
 Para criar uma conta na plataforma é preciso uma chave Nostr, que pode ser gerada na hora, e um convite enviado.
 #### Tecnologia
+1. **Backend** (FastAPI + Postgres + Redis + strfry relay) — via Docker Compose.
+2. **Frontend** (Vite + React 19 SPA, em `Front-end/`) — via npm/Vite.
+
 Usamos chaves públicas __Nostr__ como identificadores dos usuários e __Bitcoin__ para todas as transações com o intuito de manter a privacidade e pseudo anonimidade de um grupo já muito vulnerável.
 A última coisa que alguém numa plataforma como essa precisa é de doxxing, e não ter uma maneira fácil de rastrear as transações é um grande ponto positivo, principalmente no caso de compras internacionais.
 __Breez SDK - Spark__ em server-mode foi usado para gerenciar a carteira da plataforma, que serve como intermediário em transações até R$ 200. 
