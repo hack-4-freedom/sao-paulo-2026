@@ -198,10 +198,13 @@ Armazenado no PostgreSQL/Supabase:
 
 https://github.com/0xlari/hackthon4freedom
 
-### Demo
+### Demo 
 
 https://hackthon4freedom.vercel.app/
----
+
+### Apresentação
+
+https://docs.google.com/presentation/d/1zNSa0EbVbzs2JxTX4fVNyew-t-a_g2ry/edit
 
 ## Status Atual
 
