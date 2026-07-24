@@ -44,6 +44,12 @@ https://github.com/LunnaBoo/Iris
 Demo Deployed:
 https://iris-snowy-two.vercel.app
 
+Slides:
+[Iris.pdf](https://github.com/user-attachments/files/30349515/Iris.pdf)
+
+Video showcase:
+https://github.com/user-attachments/assets/41720072-fc42-4ef4-8062-f16aee7c3221
+
 ## Status
 No momento o projeto é um MVP funcional, todas as features funcionam e as transações parecem acontecer sem problemas. 
 ## Próximos Passos
