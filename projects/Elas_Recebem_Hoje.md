@@ -2,6 +2,7 @@
 
 **Hack4Freedom São Paulo 2026**
 
+Video: https://drive.google.com/drive/folders/18j60_GfGOV57cGXPsd2LI3zhLW-5gtNL
 ---
 
 ## Visão Geral
