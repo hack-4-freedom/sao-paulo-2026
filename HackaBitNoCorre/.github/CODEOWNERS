@@ -1,0 +1,15 @@
+# These owners are responsible for code review on matching paths
+# Default owners for the entire project
+* @jamiellyreis @amandamoura
+
+# Database migrations
+/supabase/migrations/ @jamiellyreis @amandamoura
+
+# Security-critical files
+/src/lib/auth.tsx @jamiellyreis @amandamoura
+/src/lib/supabase.ts @jamiellyreis @amandamoura
+/src/lib/spark.ts @jamiellyreis @amandamoura
+
+# Documentation
+/docs/ @jamiellyreis @amandamoura
+/README.md @jamiellyreis @amandamoura
