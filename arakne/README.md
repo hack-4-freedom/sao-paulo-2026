@@ -116,6 +116,189 @@ esconder a atividade do agressor.
 
 ---
 
+## Nostr — Identidade, Criptografia e Recuperação Social
+
+O Arakne usa o protocolo **Nostr** (Notes and Other Stuff Transmitted over
+Relays) como camada de identidade e comunicação criptografada para a
+recuperação social de conta. Não usamos Nostr como rede social — usamos
+apenas as primitivas criptográficas e de transporte que o protocolo oferece.
+
+### Por que Nostr?
+
+O modelo de ameaça exige que a recuperação de conta funcione **meses depois**
+do cadastro, sem servidor central, sem telefone, e sem que nenhum intermediário
+saiba quem pediu ajuda ou quem respondeu. Nostr resolve isso com:
+
+- **Chaves em vez de contas:** a identidade da usuária é um par de chaves
+  secp256k1 (nsec/npub), gerado localmente, sem registro em servidor.
+- **Relays descentralizados:** mensagens gift-wrapped persistem em relays
+  públicos; não há servidor da Arakne no meio da recuperação.
+- **Criptografia ponta-a-ponta:** NIP-44 (chave de sessão efêmera + AES-GCM)
+  garante que só o destinatário consegue ler o conteúdo.
+
+### Geração de identidade (`nostr-keys.ts`)
+
+A chave privada (nsec) é gerada com `generateSecretKey()` do `nostr-tools/pure`
+— 32 bytes aleatórios criptograficamente seguros. **Não usamos NIP-06**
+(derivação por mnemônico BIP-39), porque o protocolo Nostr marca o NIP-06
+como `unrecommended`, e o modelo de recuperação social (SSSS + NIP-59) não
+depende de seed frase. O npub (bech32, `npub1...`) é o identificador de
+backup — muito mais curto que 12 palavras.
+
+O nsec **nunca sai do dispositivo em plaintext**. Fica criptografado em
+`localStorage` com AES-GCM-256, chave derivada do Ponto Arakne via PBKDF2
+(600k iterações, WebCrypto nativo).
+
+### Gift-wrap NIP-59 (`gift-wrap.ts`)
+
+O NIP-59 cria uma camada de privacidade tripla sobre mensagens Nostr:
+
+```
+Rumor (kind 1, não assinado)
+  └→ Seal (kind 13, NIP-44, assinado pelo remetente)
+       └→ Wrap (kind 1059, chave efêmera aleatória, NIP-44)
+            └→ publicado no relay
+```
+
+1. **Rumor** — o conteúdo real (um JSON com tipo `shard`, `request` ou
+   `response`). Tem `pubkey` do autor mas sem `sig`, então não é um evento
+   publicável nem rastreável.
+2. **Seal** — assina o rumor com a chave do remetente e criptografa (NIP-44)
+   para a chave pública do destinatário. O `created_at` é randomizado.
+3. **Wrap** — envolve o seal com uma chave efêmera aleatória, criptografada
+   (NIP-44) para o destinatário. Tag `p` = destinatário.
+
+O relay só vê o wrap (kind 1059) com pubkey efêmera — **não sabe quem enviou,
+não sabe quem recebeu, não sabe o conteúdo**. O destinatário desembrulha com
+sua chave privada.
+
+### Pool de relays (`nostr-pool.ts`)
+
+Singleton `SimplePool` do `nostr-tools/pool` — uma instância para todo o app.
+Publica em **3 relays hardcoded** com redundância (se 1-2 caírem, o wrap
+sobrevive nos outros):
+
+- `wss://relay.damus.io`
+- `wss://nos.lol`
+- `wss://relay.nostr.band`
+
+- **Publish:** em todos os 3 relays simultaneamente (`Promise.allSettled`).
+  Retorna `true` se ≥1 aceitou.
+- **Subscribe:** round-robin em todos os 3. O `SimplePool` desduplica eventos
+  por `id` automaticamente.
+- **Query síncrono:** `querySync()` espera EOSE em todos os relays e retorna
+  o histórico completo (para baixar wraps pendentes quando a usuária reabre
+  o app).
+
+### Recuperação social — fluxo completo
+
+**Distribuição (no cadastro):**
+1. O nsec da dona é dividido em 2 shares via SSSS (T=2, N=2).
+2. **Share 0** → gift-wrapped (NIP-59) endereçado à convidadora (sua tecelã
+   de confiança), publicado nos 3 relays.
+3. **Share 1** → criptografada com o PIN da dona (AES-GCM) e enviada ao
+   backend (`POST /usuarias/me/recovery-share`). O backend guarda só o
+   blob opaco — nunca vê o PIN nem a share em plaintext.
+
+**Recuperação (em novo dispositivo):**
+1. A dona gera um nsec efêmero local (só para receber respostas).
+2. Faz login com `identificador` + PIN → busca e decripta a share 1 do backend.
+3. Gift-wrap um `request` endereçado à convidadora, publicado nos relays.
+4. A convidadora (com o app aberto) recebe o wrap via subscribe, desembrulha,
+   localiza a share 0 que guardou, e responde via gift-wrap com a share.
+5. A dona combina share 0 + share 1 via SSSS e valida o pubkey do nsec
+   reconstruído contra o npub esperado (`combineNsecWithCheck`).
+
+**Por que SSSS e não só criptografia?** Porque `combine()` da lib
+`shamir-secret-sharing` (auditada por Cure53 e Zellic) não detecta shares
+incorretas ou adulteradas — retorna lixo deterministicamente. O
+`combineNsecWithCheck()` deriva o pubkey do nsec reconstruído e compara com
+o esperado antes de aceitar o resultado. Isso detecta shares misturadas,
+adulteradas, ou de vaults diferentes.
+
+### Fallback de recuperação por PIN
+
+Se a conta não tem shares SSSS configuradas (caso de contas criadas via
+`/demo-setup` sem passar pelo `RecoverySetupPage`), o sistema gera uma nova
+identidade Nostr, vincula ao backend via `updateNpub`, e a dona desenha um
+novo Ponto Arakne. O saldo, tier e empréstimos estão no backend (não no
+nsec), então a conta é totalmente recuperável sem SSSS.
+
+---
+
+## Breez SDK — Carteira Lightning Não-Custodial
+
+O **Breez SDK (Spark)** é a carteira Lightning individual da usuária —
+não-custodial de verdade. A chave/seed nunca sai do dispositivo, nunca é
+enviada ao backend. Isso é estrutural, não convenção: é o que diferencia
+essa camada do pool (que **é** custodial de propósito, via Coinos no
+backend).
+
+### Por que não-custodial?
+
+O pool do Arakne (fundo coletivo) é custodial por design — é uma
+cooperativa de crédito, não uma carteira individual. Mas a carteira
+pessoal da usuária (para receber depósitos, fazer pagamentos do dia a
+dia) precisa ser dela: se o backend cair, se a operadora for embora, se
+alguém confiscar o servidor — a usuária ainda tem seus sats. O Breez SDK
+resolve isso rodando um nodo Lightning nodeless no próprio navegador
+(WASM), sem servidor intermediário.
+
+### Derivação da seed a partir do nsec
+
+O Breez SDK exige uma mnemonic BIP-39 como formato de entrada. O Arakne
+**não usa NIP-06** (derivação Nostr → BIP-39 por路径 HD), porque o
+protocolo marca NIP-06 como `unrecommended`. Em vez disso, os mesmos 32
+bytes do nsec são reinterpretados como **entropia BIP-39** via
+`entropyToMnemonic()` da lib `bip39`:
+
+```
+nsec (32 bytes) → hex → entropyToMnemonic() → 24 palavras BIP-39
+```
+
+Isso é determinístico: o mesmo nsec sempre produz a mesma mnemonic, então
+a carteira Breez de uma usuária é sempre recuperável a partir da mesma
+identidade Nostr — sem precisar guardar/mostrar a mnemonic separadamente.
+"Uma chave mestra, dois formatos de saída": o Nostr usa os bytes crus, o
+Breez usa a mesma entropia codificada como 24 palavras.
+
+### Operações (`breez-wallet.ts`)
+
+| Função | O que faz |
+|---|---|
+| `initBreezWallet(nsecBytes, config)` | Inicializa o módulo WASM, deriva a mnemonic do nsec, conecta ao SDK |
+| `getBalanceSats(sdk)` | Consulta saldo em sats via `sdk.getInfo()` |
+| `receberPagamento(sdk, amount, desc)` | Gera invoice Lightning via `sdk.receivePayment()` |
+| `prepararEnvio(sdk, destino)` | Cotação de taxa via `sdk.prepareSendPayment()` — não move nada ainda |
+| `confirmarEnvio(sdk, resultado)` | Executa o pagamento via `sdk.sendPayment()` — gasta sats reais |
+
+O fluxo de envio é sempre **dois passos**: primeiro `prepararEnvio()`
+(mostra a taxa pra usuária confirmar), depois `confirmarEnvio()` (executa).
+Nunca encadeia os dois sem confirmação humana no meio — é dinheiro real.
+
+### Configuração
+
+- **API key:** gratuita, obtida em [breez.technology](https://breez.technology)
+  (formulário "Request API Key"). Sem ela, `connect()` falha — não existe
+  modo mock aqui, porque não faz sentido simular uma carteira não-custodial:
+  ou ela é real, ou não existe.
+- **Variável:** `VITE_BREEZ_API_KEY` no `frontend/.env`
+- **SDK:** `@breeztech/breez-sdk-spark/web` (subpath `/web` para SPA/browser)
+- **WASM:** o módulo WebAssembly é carregado via `init()` antes de qualquer
+  chamada — precisa rodar uma vez por sessão.
+
+### Distinção pool vs. carteira individual
+
+| | Pool (backend) | Carteira individual (frontend) |
+|---|---|---|
+| Custódia | Custodial (Coinos) | Não-custodial (Breez SDK) |
+| Chave | JWT da conta-pool no `.env` | nsec da usuária (derivado) |
+| Operação | Empréstimos, repagamento, conversão BRL | Depósito/gasto do dia a dia |
+| Backend | `services/coinos.py` | Roda no navegador (WASM) |
+| Mock | Sim (fallback automático) | Não (ou é real, ou não existe) |
+
+---
+
 ## Fluxos de Tela (Frontend)
 
 ### Onboarding (aparelho novo)
