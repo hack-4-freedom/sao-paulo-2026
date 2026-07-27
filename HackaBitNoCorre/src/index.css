@@ -1,0 +1,140 @@
+@import "tailwindcss";
+
+@theme {
+  /* Neutral foundation — warm graphite, not pure black */
+  --color-bg: #0B0E11;
+  --color-bg-elevated: #14181D;
+  --color-surface: #1A1F26;
+  --color-surface-2: #222831;
+  --color-surface-3: #2B323C;
+  --color-border: #2A3038;
+  --color-border-strong: #3A424D;
+
+  /* Foreground */
+  --color-fg: #F5F7FA;
+  --color-fg-muted: #A0A8B4;
+  --color-fg-subtle: #6B7280;
+  --color-fg-disabled: #4B5563;
+
+  /* Brand — Bitcoin orange, warm and human */
+  --color-primary: #F7931A;
+  --color-primary-hover: #FFA733;
+  --color-primary-press: #E07D0A;
+  --color-primary-soft: rgba(247, 147, 26, 0.14);
+  --color-primary-fg: #0B0E11;
+
+  /* Secondary — deep emerald for trust/growth */
+  --color-secondary: #10B981;
+  --color-secondary-hover: #34D399;
+  --color-secondary-soft: rgba(16, 185, 129, 0.14);
+
+  /* Semantic */
+  --color-success: #22C55E;
+  --color-success-soft: rgba(34, 197, 94, 0.14);
+  --color-warning: #F59E0B;
+  --color-warning-soft: rgba(245, 158, 11, 0.14);
+  --color-error: #EF4444;
+  --color-error-soft: rgba(239, 68, 68, 0.14);
+  --color-info: #3B82F6;
+  --color-info-soft: rgba(59, 130, 246, 0.14);
+
+  /* Typography */
+  --font-sans: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-display: "Inter", "SF Pro Display", -apple-system, sans-serif;
+
+  /* Radius */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+  --radius-2xl: 36px;
+
+  /* Spacing scale — 8px base */
+  --spacing-unit: 8px;
+
+  /* Motion */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 160ms;
+  --duration-base: 240ms;
+  --duration-slow: 360ms;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-glow: 0 0 24px rgba(247, 147, 26, 0.25);
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-sans);
+    background-color: var(--color-bg);
+    color: var(--color-fg);
+    font-feature-settings: "cv11", "ss01", "ss03";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    overscroll-behavior-y: none;
+  }
+
+  #root {
+    min-height: 100dvh;
+  }
+
+  button {
+    font-family: inherit;
+    cursor: pointer;
+  }
+
+  /* Focus ring — visible, accessible */
+  :focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+@layer utilities {
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .tap-highlight-none {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Text gradient for sats balance */
+  .text-gradient-gold {
+    background: linear-gradient(135deg, #F7931A 0%, #FFC56F 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}
