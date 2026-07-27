@@ -1,0 +1,74 @@
+# SatsMeter
+
+**Hack4Freedom São Paulo 2026**
+
+---
+
+## Visão Geral
+
+SatsMeter é uma infraestrutura de energia comunitária que **cobra o consumo automaticamente em Bitcoin (Lightning), por microliquidações — sem banco e sem intermediário**.
+
+Um medidor (ESP32 + sensor INA219) reporta o consumo via MQTT; o backend converte energia em sats e liquida do saldo do consumidor direto para o produtor. Quando o saldo esgota, o relé corta o circuito; ao recarregar acima do mínimo, religa sozinho. Um dashboard mostra tudo em tempo real.
+
+---
+
+## Problema
+
+Cobrar energia em comunidades, minirredes e locais sem infraestrutura bancária é caro e lento:
+
+- Boleto e gateways de pagamento (PSP) têm taxa fixa por transação + mensalidade, o que inviabiliza cobrar **pequenos volumes com alta frequência**.
+- Dependem de banco/intermediário.
+- Corte e religação costumam ser manuais.
+
+---
+
+## Solução
+
+Medição e liquidação **automáticas** em Lightning:
+
+- ESP32 + INA219 medem o consumo e publicam leituras via MQTT.
+- O backend acumula energia por casa e dispara **microliquidações** em sats ao produtor a cada X Wh consumidos.
+- Regras de negócio: **histerese** (corta só após N leituras sem saldo), **anti-flapping** (religa só acima de um saldo mínimo), **fail-safe** (silêncio do medidor nunca causa corte) e **idempotência** (nada cobra em dobro).
+- O relé corta/religa automaticamente via comando MQTT.
+- Dashboard em **tempo real** (WebSocket) com KPIs, séries de consumo e de sats, extrato de eventos e um comparativo de custo **boleto × PSP × Lightning**.
+
+---
+
+## Stack de Tecnologia
+
+- **Firmware:** ESP32 + INA219, C++ (PlatformIO), MQTT via PubSubClient (TLS).
+- **Mensageria:** MQTT (HiveMQ Cloud em produção / Mosquitto em dev).
+- **Backend:** Node.js + Express + TypeScript, WebSocket (ws), ledger persistente.
+- **Frontend:** React + TypeScript (Vite).
+- **Lightning:** LNbits (com fallback simulado no MVP).
+- **Infra:** Docker Compose (Mosquitto + LNbits); deploy do backend no Railway e do frontend no Vercel.
+
+---
+
+## Membros da Equipe
+
+- Camila
+- Bianca
+- Bárbara
+
+---
+
+## Repositório e Links
+
+- **Código:** https://github.com/camistallica/satsmeter
+- **Demo:** https://satsmeter.vercel.app/
+
+---
+
+## Status Atual
+
+MVP funcional: firmware, backend e dashboard **integrados e rodando em tempo real** (validado com simulador e via HiveMQ). O fluxo completo — leitura → microliquidação → corte → religa — funciona, com o dashboard atualizando ao vivo.
+
+---
+
+## Próximos Passos
+
+- Deploy público (backend no Railway, frontend no Vercel).
+- Teste com hardware real (ESP32 + INA219 + relé).
+- Persistência em banco (hoje o ledger é em arquivo) e autenticação por dispositivo.
+- Integração Lightning real (pagamentos ao produtor) além do MVP.
